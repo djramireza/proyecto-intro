@@ -21,6 +21,7 @@ ENEMY_W      = 36
 ENEMY_H      = 42
 PLAYER_W     = 50
 PLAYER_H     = 100
+jugador_invencible = 0
 
 carpeta = os.path.dirname(os.path.abspath(__file__))
 
@@ -72,7 +73,7 @@ def actualizar_camara(player_x):
     cam_x  = max(0, min(target, cam_level_width - SCREEN_W))
 
 def camara_wx(world_x):
-    """Convierte coordenada de mundo a coordenada de pantalla."""
+    #Convierte coordenada de mundo a coordenada de pantalla.
     return world_x - cam_x
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -85,6 +86,15 @@ nivel_img_plat = None
 # Suelo: lista (x, y, ancho, alto)
 nivel_floor = [
     (0, 540, 3200, 60),
+]
+
+datos_enemigos = [ #(x, y, donde va a la izquierda, donde va a la derecha)
+    (500,  540, 350,  750),
+    (1200, 540, 1150, 1400),
+    (1500, 430, 1400, 1700),
+    (2100, 540, 1900, 2300),
+    (2700, 400, 2600, 2900),
+
 ]
 
 # Plataformas: lista (x, y, ancho, alto)
@@ -102,7 +112,7 @@ nivel_ladders = [
 ]
 
 # Meta: (x, y, ancho, alto)
-nivel_meta = (2930, 260, 40, 80)
+nivel_meta = (1000, 400, 40, 80)
 
 # Spawn del jugador
 nivel_spawn_x = 80
@@ -155,9 +165,12 @@ def respawnear_jugador():
     jug_alive     = True
 
 def herir_jugador():
-    global jug_lives, jug_alive
+    global jug_lives, jug_alive, jugador_invencible
+    if jugador_invencible > 0:
+        return
     jug_lives -= 1
     jug_alive  = jug_lives > 0
+    jugador_invencible = 60
 
 def manejar_input(): #defino l que sucede con
     global jug_vx, jug_vy, jug_facing, jug_on_ground
@@ -255,14 +268,6 @@ en_alive  = []
 en_img_der = None
 en_img_izq = None
 
-datos_enemigos = [ #(x, y, donde va a la izquierda, donde va a la derecha)
-    (500,  540, 350,  750),
-    (1200, 540, 1150, 1400),
-    (1500, 430, 1400, 1700),
-    (2100, 540, 1900, 2300),
-    (2700, 400, 2600, 2900),
-
-]
 
 def inicializar_enemigos():
     global en_x, en_y, en_vx, en_vy, en_left, en_right, en_alive
@@ -424,19 +429,93 @@ def dibujar_juego(canvas):
                        text="A/D=mover  W=saltar/subir  S=bajar  Espacio=saltar  ESC=salir",
                        fill="#ffffff", font=("Courier", 8))
 
+def guardar_puntaje(nombre, puntos):
+    ruta = os.path.join(carpeta, "puntajes.txt")
+    print(f"Guardando: {nombre} - {puntos} en {ruta}")
+# Leer puntajes existentes
+    puntajes = []
+    if os.path.exists(ruta):
+        archivo = open(ruta, "r")
+        for linea in archivo:
+            linea = linea.strip()
+            if linea:
+                partes = linea.split(",")
+                puntajes.append((partes[0], int(partes[1])))
+        archivo.close()
+    # Agregar el nuevo
+    puntajes.append((nombre, puntos))
+    # Ordenar y guardar solo top 5
+    puntajes.sort(key=lambda x: x[1], reverse=True)
+    puntajes = puntajes[:5]
+    archivo = open(ruta, "w")
+    for n, p in puntajes:
+        archivo.write(f"{n},{p}\n")
+    archivo.close()
+
+def ventana_ganar(ventana_padre):
+    win = tk.Toplevel(ventana_padre)
+    win.title ("Victoria")
+    win.geometry("600x400")
+    tk.Label(win, text= "Ganaste", font= ("Perfect DOS VGA 437 Win", 20)).pack(pady=10)
+    tk.Label(win, text=f"Puntaje: {jug_score}", font=("Perfect DOS VGA 437 Win", 14)).pack(pady=5)
+
+    tk.Label(win, text="Ingresa tu nombre:", font=("Perfect DOS VGA 437 Win", 12)).pack(pady=5)
+    
+    entrada = tk.Entry(win, font=("Perfect DOS VGA 437 Win", 12), width=20)
+    entrada.pack(pady=5)
+
+    def guardar():
+        nombre = entrada.get().strip()
+        if nombre == "":
+            nombre = "Jugador"
+        guardar_puntaje(nombre, jug_score)
+        win.destroy()
+
+    tk.Button(win, text="Guardar", font=("Perfect DOS VGA 437 Win", 12), command=guardar).pack(pady=10)
+
+def ventana_records(ventana_padre):
+    ruta = os.path.join(carpeta, "puntajes.txt")
+    print(ruta)
+    win = tk.Toplevel(ventana_padre)
+    win.title("Records")
+    win.geometry("400x350")
+    win.configure(bg="#111122")
+    tk.Label(win, text="Mejores Puntajes", font=("Perfect DOS VGA 437 Win", 14), bg= "#111122", fg="#FFD700").pack(pady=15)
+
+    puntajes = []
+    if os.path.exists(ruta):
+        archivo = open(ruta, "r")
+        for linea in archivo:
+            linea = linea.strip()
+            if linea:
+                partes = linea.split(",")
+                puntajes.append((partes[0], int(partes[1])))
+        archivo.close()
+    print(puntajes)
+    if not puntajes:
+        tk.Label (win, text= "No hay puntajes aun", font=("Perfect, DOS VGA 437 Win", 14), bg="#111122", fg="white").pack(pady=10)
+    else:
+        posicion = ["1.", "2.", "3.", "4.", "5."]
+        colores = ["#FFD700", "#cccccc", "#cc8800", "white", "white"]
+        for i in range(len(puntajes)):
+            nombre, pts = puntajes[i]
+            tk.Label(win, text=f"{posicion[i]}  {nombre}  —  {pts} pts", font=("Perfect DOS VGA 437 Win", 12), bg="#111122", fg=colores[i]).pack(pady=4)
+    tk.Button (win, text="Cerrar", font=("Perfect DOS VGA 437 Win", 11), bg="#220000", fg="white",command=win.destroy).pack(pady=15)
+         
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  BUCLE PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════════════
 def iniciar_juego(ventana_principal):
-    global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space
+    global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space, jugador_invencible
 
-    ventana = tk.Toplevel(ventana_principal)
+    ventana_principal.withdraw()
+    ventana = tk.Toplevel(ventana_principal) 
     ventana.title("Piston Power Adventure — Nivel 1")
     ventana.geometry(f"{SCREEN_W}x{SCREEN_H}")
     ventana.resizable(False, False)
 
-    canvas = tk.Canvas(ventana, width=SCREEN_W, height=SCREEN_H,
-                       bg="#000", highlightthickness=0)
+    canvas = tk.Canvas(ventana, width=SCREEN_W, height=SCREEN_H, bg="#000", highlightthickness=0)
     canvas.pack()
 
     inicializar_nivel()
@@ -476,22 +555,21 @@ def iniciar_juego(ventana_principal):
     # ── Fin de partida ────────────────────────────────────────────────────────
     def game_over():
         activo[0] = False
-        messagebox.showinfo("Game Over",
-                            f"¡Se acabaron las vidas!\nPuntuación: {jug_score}",
-                            parent=ventana)
+        messagebox.showinfo("Game Over", f"¡Se acabaron las vidas!\nPuntuación: {jug_score}", parent=ventana)
         ventana.destroy()
 
     def ganar():
         activo[0] = False
-        nueva = tk.Tk()
-        nueva.geometry(SCREEN_H//2, SCREEN_W//2)
-        ventana.destroy()
-
+        ventana.withdraw()
+        ventana_ganar(ventana)
+        
     # ── Bucle ─────────────────────────────────────────────────────────────────
     def loop():
+        global jugador_invencible
         if not activo[0]:
             return
-
+        if jugador_invencible > 0:
+            jugador_invencible -= 1 
         todas = nivel_platforms + nivel_floor
 
         now = time.perf_counter()
@@ -521,6 +599,7 @@ def iniciar_juego(ventana_principal):
     ventana.protocol("WM_DELETE_WINDOW", lambda: [activo.__setitem__(0, False), ventana.destroy()])
     loop()
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  MENÚ PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════════════
@@ -542,35 +621,26 @@ def crear_menu():
     canvas_menu.create_image(0, 0, anchor="nw", image=fondo)
     ventana.fondo = fondo
 
-    btn_jugar = tk.Label(ventana, text="Jugar Nivel Fijo",
-                         font=("Perfect DOS VGA 437 Win", 16),
-                         width=15, height=3, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_jugar = tk.Label(ventana, text="Jugar Nivel Fijo", font=("Perfect DOS VGA 437 Win", 16), width=15, height=3, bg="#d6bc84", fg="black", cursor="hand2")
     btn_jugar.bind("<Button-1>", lambda e: iniciar_juego(principal))
     canvas_menu.create_window(351, 256, window=btn_jugar)
 
-    btn_editor = tk.Label(ventana, text="Creador \n de Niveles",
-                          font=("Perfect DOS VGA 437 Win", 16),
-                          width=13, height=2, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_editor = tk.Label(ventana, text="Creador \n de Niveles", font=("Perfect DOS VGA 437 Win", 16), width=13, height=2, bg="#d6bc84", fg="black", cursor="hand2")
     btn_editor.bind("<Button-1>", lambda e: print("Editor próximamente"))
     canvas_menu.create_window(769, 253, window=btn_editor)
 
-    btn_records = tk.Label(ventana, text="Records",
-                           font=("Perfect DOS VGA 437 Win", 16),
-                           width=13, height=4, bg="#d6bc84", fg="black", cursor="hand2")
-    btn_records.bind("<Button-1>", lambda e: print("Records próximamente"))
+    btn_records = tk.Label(ventana, text="Records", font=("Perfect DOS VGA 437 Win", 16), width=13, height=4, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_records.bind("<Button-1>", lambda e: ventana_records(principal))
     canvas_menu.create_window(763, 362, window=btn_records)
 
-    btn_salir = tk.Label(ventana, text="Quit",
-                         font=("Perfect DOS VGA 437 Win", 16),
-                         width=10, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
+    btn_salir = tk.Label(ventana, text="Quit", font=("Perfect DOS VGA 437 Win", 16), width=10, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
     btn_salir.bind("<Button-1>", lambda e: salir())
     canvas_menu.create_window(555, 468, window=btn_salir)
 
-    btn_sonido = tk.Label(ventana, text="Sonido",
-                          font=("Perfect DOS VGA 437 Win", 16),
-                          width=14, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
+    btn_sonido = tk.Label(ventana, text="Sonido", font=("Perfect DOS VGA 437 Win", 16), width=14, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
     btn_sonido.bind("<Button-1>", lambda e: toggle_musica())
     canvas_menu.create_window(351, 357, window=btn_sonido)
+
 
     reproducir_cancion()
 
