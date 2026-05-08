@@ -507,15 +507,17 @@ def ventana_records(ventana_padre):
 #  BUCLE PRINCIPAL
 # ══════════════════════════════════════════════════════════════════════════════
 def iniciar_juego(ventana_principal):
-    global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space, jugador_invencible
-
+    global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space, jugador_invencible, ventana_menu
+    for widget in ventana_menu.winfo_children():
+        widget.destroy()
+    pygame.mixer.music.stop()
     ventana_principal.withdraw()
     ventana = tk.Toplevel(ventana_principal) 
     ventana.title("Piston Power Adventure — Nivel 1")
     ventana.geometry(f"{SCREEN_W}x{SCREEN_H}")
     ventana.resizable(False, False)
 
-    canvas = tk.Canvas(ventana, width=SCREEN_W, height=SCREEN_H, bg="#000", highlightthickness=0)
+    canvas = tk.Canvas(ventana_menu, width=SCREEN_W, height=SCREEN_H, bg="#000", highlightthickness=0)
     canvas.pack()
 
     inicializar_nivel()
@@ -538,6 +540,11 @@ def iniciar_juego(ventana_principal):
         if k == "escape":
             activo[0] = False
             ventana.destroy()
+            for widget in ventana.menu.winfo_children():
+                pygame.mixer.music.play(-1)
+                widget.destroy()
+            crear_menu()
+
 
     def key_up(event):
         global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space
@@ -599,6 +606,76 @@ def iniciar_juego(ventana_principal):
     ventana.protocol("WM_DELETE_WINDOW", lambda: [activo.__setitem__(0, False), ventana.destroy()])
     loop()
 
+#=====================Editor de niveles==================#
+#tamaño de vnetana
+EDITOR_W = 5333
+EDITOR_H = 600
+BARRA_H = 100
+EDITOR_TOTAL = EDITOR_H + BARRA_H
+
+#herramientas que se van a ocupar
+HERRA_PLAT = "plataforma"
+HERRA_ESC = "escalera"
+HERRA_ENEMIGO = "enemigo"
+HERRA_SPAWN = "spawn"
+HERRA_META = "meta"
+HERRA_BORRAR = "borrar"
+
+#variables de editor
+ed_cam_x       = 0          # camara del editor
+ed_herramienta = HERRA_PLAT  # herramienta seleccionada
+ed_plataformas = []          # lista de tuplas (x, y, ancho, alto)
+ed_escaleras   = []          # lista de tuplas (x, y, ancho, alto)
+ed_enemigos_x  = []          # posicion x de cada enemigo
+ed_enemigos_y  = []          # posicion y de cada enemigo
+ed_spawn_x     = 100         # posicion spawn
+ed_spawn_y     = 440
+ed_meta_x      = 5000        # posicion meta
+ed_meta_y      = 350
+ed_arrastrando = False       # si el mouse esta presionado
+ed_inicio_x    = 0           # donde empezo el arrastre
+ed_inicio_y    = 0
+
+# Tamaños de elementos
+PLAT_W_ED  = 200
+PLAT_H_ED  = 20
+ESC_W_ED   = 40
+ESC_H_ED   = 120
+META_W_ED  = 40
+META_H_ED  = 80
+SPAWN_W_ED = 40
+SPAWN_H_ED = 60
+EN_W_ED    = 40
+EN_H_ED    = 40
+
+def abrir_editor(ventana_principal): 
+    global ed_cam_x, ed_herramienta, ed_plataformas, ed_escaleras, ed_enemigos_x, ed_enemigos_y, ed_spawn_x, ed_spawn_y
+    global ed_meta_x, ed_meta_y, ed_arrastrando, ed_inicio_x, ed_inicio_y, nivel_platforms, nivel_ladders, nivel_spawn_x, nivel_spawn_y, nivel_meta
+    global datos_enemigos
+
+    ed_cam_x       = 0
+    ed_herramienta = HERRA_PLAT
+    ed_plataformas = []
+    ed_escaleras   = []
+    ed_enemigos_x  = []
+    ed_enemigos_y  = []
+    ed_spawn_x     = 100
+    ed_spawn_y     = 440
+    ed_meta_x      = 5000
+    ed_meta_y      = 350
+    ed_arrastrando = False
+ 
+    ventana = tk.Toplevel(ventana_principal)
+    ventana.title("Creador de Niveles")
+    ventana.geometry(f"{SCREEN_W}x{EDITOR_TOTAL}")
+    ventana.resizable(False, False)
+
+    #canvas para editor
+    canvas = tk.Canvas(ventana, width=SCREEN_W, height=EDITOR_H, bg="#1a1a2e", highlightthickness=0)
+    canvas.pack()
+
+    #barra de herramientas
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  MENÚ PRINCIPAL
@@ -607,37 +684,38 @@ def salir():
     principal.destroy()
 
 def crear_menu():
-    ventana = tk.Toplevel(principal)
-    ventana.title("Piston Power Adventure")
-    ventana.geometry(f"{ANCHO}x{ALTO}")
-    ventana.resizable(False, False)
+    global ventana_menu
+    ventana_menu = tk.Toplevel(principal)
+    ventana_menu.title("Piston Power Adventure")
+    ventana_menu.geometry(f"{ANCHO}x{ALTO}")
+    ventana_menu.resizable(False, False)
 
-    canvas_menu = tk.Canvas(ventana, width=ANCHO, height=ALTO)
+    canvas_menu = tk.Canvas(ventana_menu, width=ANCHO, height=ALTO)
     canvas_menu.pack(fill="both", expand=True)
 
     imagen = Image.open(os.path.join(carpeta, "menu.png"))
     imagen = imagen.resize((ANCHO, ALTO))
     fondo  = ImageTk.PhotoImage(imagen)
     canvas_menu.create_image(0, 0, anchor="nw", image=fondo)
-    ventana.fondo = fondo
+    ventana_menu.fondo = fondo
 
-    btn_jugar = tk.Label(ventana, text="Jugar Nivel Fijo", font=("Perfect DOS VGA 437 Win", 16), width=15, height=3, bg="#d6bc84", fg="black", cursor="hand2")
-    btn_jugar.bind("<Button-1>", lambda e: iniciar_juego(principal))
+    btn_jugar = tk.Label(ventana_menu, text="Jugar Nivel Fijo", font=("Perfect DOS VGA 437 Win", 16), width=15, height=3, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_jugar.bind("<Button-1>", lambda e: iniciar_juego(ventana_menu))
     canvas_menu.create_window(351, 256, window=btn_jugar)
 
-    btn_editor = tk.Label(ventana, text="Creador \n de Niveles", font=("Perfect DOS VGA 437 Win", 16), width=13, height=2, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_editor = tk.Label(ventana_menu, text="Creador \n de Niveles", font=("Perfect DOS VGA 437 Win", 16), width=13, height=2, bg="#d6bc84", fg="black", cursor="hand2")
     btn_editor.bind("<Button-1>", lambda e: print("Editor próximamente"))
     canvas_menu.create_window(769, 253, window=btn_editor)
 
-    btn_records = tk.Label(ventana, text="Records", font=("Perfect DOS VGA 437 Win", 16), width=13, height=4, bg="#d6bc84", fg="black", cursor="hand2")
+    btn_records = tk.Label(ventana_menu, text="Records", font=("Perfect DOS VGA 437 Win", 16), width=13, height=4, bg="#d6bc84", fg="black", cursor="hand2")
     btn_records.bind("<Button-1>", lambda e: ventana_records(principal))
     canvas_menu.create_window(763, 362, window=btn_records)
 
-    btn_salir = tk.Label(ventana, text="Quit", font=("Perfect DOS VGA 437 Win", 16), width=10, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
+    btn_salir = tk.Label(ventana_menu, text="Quit", font=("Perfect DOS VGA 437 Win", 16), width=10, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
     btn_salir.bind("<Button-1>", lambda e: salir())
     canvas_menu.create_window(555, 468, window=btn_salir)
 
-    btn_sonido = tk.Label(ventana, text="Sonido", font=("Perfect DOS VGA 437 Win", 16), width=14, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
+    btn_sonido = tk.Label(ventana_menu, text="Sonido", font=("Perfect DOS VGA 437 Win", 16), width=14, height=2, bg="#d6bc84", fg="Black", cursor="hand2")
     btn_sonido.bind("<Button-1>", lambda e: toggle_musica())
     canvas_menu.create_window(351, 357, window=btn_sonido)
 
