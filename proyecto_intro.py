@@ -23,6 +23,10 @@ PLAYER_W     = 50
 PLAYER_H     = 100
 jugador_invencible = 0
 carpeta = os.path.dirname(os.path.abspath(__file__))
+jug_img_walk1 = None
+jug_img_walk2 = None
+jug_anim_tick  = 0
+jug_anim_frame = 0
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  AUDIO
@@ -30,8 +34,9 @@ carpeta = os.path.dirname(os.path.abspath(__file__))
 musica_activa = True
 
 def reproducir_cancion():
-    audio = os.path.join(carpeta, "musica.mp3")
     pygame.mixer.init()
+    audio = os.path.join(carpeta, "musica.mp3")  
+    pygame.mixer.music.stop()
     pygame.mixer.music.load(audio)
     pygame.mixer.music.play(-1)
 
@@ -83,46 +88,55 @@ nivel_bg       = None
 nivel_img_plat = None
 
 # Suelo: lista (x, y, ancho, alto)
-nivel_floor = [
+fijo_floor = [
     (0, 540, 3200, 60),
 ]
 
-datos_enemigos = [ #(x, y, donde va a la izquierda, donde va a la derecha)
+fijo_enemigos = [ #(x, y, donde va a la izquierda, donde va a la derecha)
     (500,  540, 350,  750),
     (1200, 540, 1150, 1400),
     (1500, 430, 1400, 1700),
 ]
 
-datos_enemigos2 = [
+fijo_enemigos2 = [
     (800, 540, 700, 900),
     (200, 540, 100, 300)
 
 ]
 # Plataformas: lista (x, y, ancho, alto)
-nivel_platforms = [
+fijo_platforms = [
     (400, 290, 200, 20),
     (1400, 340, 200, 20),
 
 ]
 
 # Escaleras: lista (x, y, ancho, alto)
-nivel_ladders = [
+fijo_ladders = [
     (360,  300, 40, 240),
     (1360, 350, 40, 190),
     (2700, 300, 40, 220),
 ]
 
 # Meta: (x, y, ancho, alto)
-nivel_meta = (1825, 350, 40, 80)
+fijo_meta = (1825, 350, 40, 80)
 
 # Spawn del jugador
-nivel_spawn_x = 80
-nivel_spawn_y = 540
+fijo_spawn_x = 80
+fijo_spawn_y = 540
+
+#para nivel fijo
+nivel_platforms = []
+nivel_ladders   = []
+nivel_spawn_x   = 0
+nivel_spawn_y   = 0
+nivel_meta      = (0, 0, 0, 0)
+datos_enemigos  = []
+datos_enemigos2 = []
+nivel_floor = [(0, 540, 8000, 60)]
 
 def inicializar_nivel():
-    global nivel_bg, nivel_bg2, nivel_img_plat
+    global nivel_bg, nivel_img_plat
     nivel_bg       = cargar_imagen(os.path.join(carpeta, "fondo_ingame.png"))
-    nivel_bg2      = cargar_imagen(os.path.join(carpeta, "fondo_ingame2.png"))
     nivel_img_plat = cargar_imagen(os.path.join(carpeta, "plataforma.png"), 220, 130)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -139,10 +153,22 @@ jug_lives     = 3
 jug_score     = 0
 jug_alive     = True
 jug_img       = None
+musica_ganar = None
+
+def cargar_nivel_fijo():
+    global nivel_platforms, nivel_ladders, nivel_spawn_x
+    global nivel_spawn_y, nivel_meta, datos_enemigos, datos_enemigos2
+    nivel_platforms = fijo_platforms[:]
+    nivel_ladders   = fijo_ladders[:]
+    nivel_spawn_x   = fijo_spawn_x
+    nivel_spawn_y   = fijo_spawn_y
+    nivel_meta      = fijo_meta
+    datos_enemigos  = fijo_enemigos[:]
+    datos_enemigos2 = fijo_enemigos2[:]
 
 def inicializar_jugador():
     global jug_x, jug_y, jug_vx, jug_vy, jug_on_ground, jug_on_ladder
-    global jug_facing, jug_lives, jug_score, jug_alive, jug_img
+    global jug_facing, jug_lives, jug_score, jug_alive, jug_img, jug_img_walk1, jug_img_walk2, jug_img_walk1_izq, jug_img_walk2_izq
     jug_x         = float(nivel_spawn_x)
     jug_y         = float(nivel_spawn_y - PLAYER_H)
     jug_vx        = 0.0
@@ -153,7 +179,11 @@ def inicializar_jugador():
     jug_lives     = 3
     jug_score     = 0
     jug_alive     = True
-    jug_img       = cargar_imagen(os.path.join(carpeta, "pistonbot_original.png"), PLAYER_W, PLAYER_H)
+    jug_img = cargar_imagen(os.path.join(carpeta, "pistonbot_original.png"), PLAYER_W, PLAYER_H)
+    jug_img_walk1 = cargar_imagen(os.path.join(carpeta, "corriendo1.png"), PLAYER_W, PLAYER_H)
+    jug_img_walk2 = cargar_imagen(os.path.join(carpeta, "corriendo2.png"), PLAYER_W, PLAYER_H)
+    jug_img_walk1_izq = cargar_imagen(os.path.join(carpeta, "corriendo1izq.png"), PLAYER_W, PLAYER_H)
+    jug_img_walk2_izq = cargar_imagen(os.path.join(carpeta, "corriendo2izq.png"), PLAYER_W, PLAYER_H)    
 
 def respawnear_jugador():
     global jug_x, jug_y, jug_vx, jug_vy, jug_on_ground, jug_on_ladder, jug_alive
@@ -304,8 +334,8 @@ def inicializar_enemigos():
     en_img_izq = cargar_imagen(os.path.join(carpeta, "enemigo_standingder.png"), ENEMY_W, ENEMY_H)
 
 def inicializar_enemigos2():
-    global en2_x, en2_y, en2_vx, en2_vy, en2_left, en2_right, en2_alive, en2_img_der, en2_img_izq
-    
+    global en2_x, en2_y, en2_vx, en2_vy, en2_left, en2_right, en2_alive
+    global en2_img_der, en2_img_izq
     en2_x     = []
     en2_y     = []
     en2_vx    = []
@@ -313,10 +343,10 @@ def inicializar_enemigos2():
     en2_left  = []
     en2_right = []
     en2_alive = []
-    for x, y, left, right in datos_enemigos:
+    for x, y, left, right in datos_enemigos2:   # <- datos_enemigos2
         en2_x.append(float(x))
         en2_y.append(float(y - EN2_H))
-        en2_vx.append(1.5)
+        en2_vx.append(1.0)
         en2_vy.append(0.0)
         en2_left.append(left)
         en2_right.append(right)
@@ -401,8 +431,8 @@ def verificar_colision_enemigos2():
     jy1 = jug_y + margen_y
     jx2 = jug_x + PLAYER_W - margen_x
     jy2 = jug_y + PLAYER_H - margen_y
-    for i in range(len(en_x)):
-        if not en_alive[i]:
+    for i in range(len(en2_x)):        # <- en2_x
+        if not en2_alive[i]:           # <- en2_alive
             continue
         ex1 = en2_x[i]
         ey1 = en2_y[i]
@@ -410,9 +440,9 @@ def verificar_colision_enemigos2():
         ey2 = en2_y[i] + EN2_H
         if jx2 > ex1 and jx1 < ex2 and jy2 > ey1 and jy1 < ey2:
             if jug_vy > 0 and jy2 - ey1 < 20:
-                en_alive[i]  = False
-                jug_vy       = JUMP_FORCE * 0.6
-                jug_score   += 100
+                en2_alive[i]  = False  # <- en2_alive
+                jug_vy        = JUMP_FORCE * 0.6
+                jug_score    += 150
             else:
                 herir_jugador()
                 return
@@ -426,17 +456,17 @@ def verificar_meta():
 #  DIBUJO
 # ══════════════════════════════════════════════════════════════════════════════
 def dibujar_juego(canvas):
+    global jug_anim_tick, jug_anim_frame
     canvas.delete("all")
 
     # ── Fondo ────────────────────────────────────────────────────────────────
     if nivel_bg:
         canvas.create_image(camara_wx(0), 0, anchor="nw", image=nivel_bg)
-        canvas.create_image(camara_wx(1871), 0, anchor= "nw", image=nivel_bg2)
     else:
         canvas.create_rectangle(0, 0, SCREEN_W, SCREEN_H, fill="#4a7fd4", outline="")
 
     # ── Suelo ─────────────────────────────────────────────────────────────────
-    for px, py, pw, ph in nivel_floor:
+    for px, py, pw, ph in fijo_floor:
         sx = camara_wx(px)
        
 
@@ -479,30 +509,61 @@ def dibujar_juego(canvas):
         elif en_vx[i] <= 0 and en_img_izq:
             canvas.create_image(sx, en_y[i], anchor="nw", image=en_img_izq)
         else:
-            canvas.create_rectangle(sx, en_y[i], sx + ENEMY_W, en_y[i] + ENEMY_H,
-                                    fill="#6a006a", outline="#330033")
+            canvas.create_rectangle(sx, en_y[i], sx + ENEMY_W, en_y[i] + ENEMY_H, fill="#6a006a", outline="#330033")
+
+    for i in range(len(en2_x)):
+        if not en2_alive[i]:
+            continue
+        sx = camara_wx(en2_x[i])
+        if sx + EN2_W < 0 or sx > SCREEN_W:
+            continue
+        if en2_vx[i] > 0 and en2_img_der:
+            canvas.create_image(sx, en2_y[i], anchor="nw", image=en2_img_der)
+        elif en2_vx[i] <= 0 and en2_img_izq:
+            canvas.create_image(sx, en2_y[i], anchor="nw", image=en2_img_izq)
+        else:
+            canvas.create_rectangle(sx, en2_y[i], sx + EN2_W, en2_y[i] + EN2_H, fill="#003366", outline="#0066cc")   
 
     # ── Jugador ───────────────────────────────────────────────────────────────
     sx = camara_wx(jug_x)
-    if jug_img:
-        canvas.create_image(sx, jug_y, anchor="nw", image=jug_img)
+
+# Animacion
+    if jug_vx != 0:
+        jug_anim_tick += 1
+        if jug_anim_tick >= 10:
+            jug_anim_tick  = 0
+            jug_anim_frame = 1 - jug_anim_frame
     else:
-        canvas.create_rectangle(sx, jug_y + 18, sx + PLAYER_W, jug_y + PLAYER_H,
-                                fill="#cc3300", outline="#881100")
+        jug_anim_tick  = 0    
+        jug_anim_frame = 0    
+
+# Elegir imagen segun estado
+    if jug_vx > 0:
+        if jug_anim_frame == 0:
+            img = jug_img_walk1
+        else:
+            img = jug_img_walk2
+    elif jug_vx < 0:
+        if jug_anim_frame == 0:
+            img = jug_img_walk1_izq
+        else:
+            img = jug_img_walk2_izq
+    else:
+        img = jug_img
+
+    if img:
+        canvas.create_image(sx, jug_y, anchor="nw", image=img)
+    else:
+        canvas.create_rectangle(sx, jug_y + 18, sx + PLAYER_W, jug_y + PLAYER_H, fill="#cc3300", outline="#881100")
 
     # ── HUD ───────────────────────────────────────────────────────────────────
     canvas.create_rectangle(8, 8, 340, 40, fill="#000000", outline="")
     corazones = "♥ " * jug_lives
-    canvas.create_text(14, 24, anchor="w",
-                       text=f"{corazones}  Pts: {jug_score}",
-                       fill="#FFD700", font=("Perfect DOS VGA 437 Win", 13, "bold"))
-    canvas.create_text(SCREEN_W - 8, SCREEN_H - 8, anchor="se",
-                       text="A/D=mover  W=saltar/subir  S=bajar  Espacio=saltar  ESC=salir",
-                       fill="#ffffff", font=("Courier", 8))
+    canvas.create_text(14, 24, anchor="w", text=f"{corazones}  Pts: {jug_score}", fill="#FFD700", font=("Perfect DOS VGA 437 Win", 13, "bold"))
+    canvas.create_text(SCREEN_W - 8, SCREEN_H - 8, anchor="se", text="A/D=mover  W=saltar/subir  S=bajar  Espacio=saltar  ESC=salir", fill="#ffffff", font=("Courier", 8))
 
 def guardar_puntaje(nombre, puntos):
     ruta = os.path.join(carpeta, "puntajes.txt")
-    print(f"Guardando: {nombre} - {puntos} en {ruta}")
 # Leer puntajes existentes
     puntajes = []
     if os.path.exists(ruta):
@@ -524,22 +585,32 @@ def guardar_puntaje(nombre, puntos):
     archivo.close()
 
 def ventana_ganar(ventana_padre):
+  
+    pygame.mixer.init()
+    pygame.mixer.music.stop()
+    cancion = os.path.join(carpeta, "cancion_win.mp3")
+    if os.path.exists(cancion):
+        pygame.mixer.music.load(cancion)
+        pygame.mixer.music.play()
     win = tk.Toplevel(ventana_padre)
     win.title ("Victoria")
     win.geometry("600x400")
     tk.Label(win, text= "Ganaste", font= ("Perfect DOS VGA 437 Win", 20)).pack(pady=10)
     tk.Label(win, text=f"Puntaje: {jug_score}", font=("Perfect DOS VGA 437 Win", 14)).pack(pady=5)
+ 
 
     tk.Label(win, text="Ingresa tu nombre:", font=("Perfect DOS VGA 437 Win", 12)).pack(pady=5)
     
     entrada = tk.Entry(win, font=("Perfect DOS VGA 437 Win", 12), width=20)
     entrada.pack(pady=5)
+    win.protocol("WM_DELETE_WINDOW", lambda: [reproducir_cancion(), win.destroy()])
 
     def guardar():
         nombre = entrada.get().strip()
         if nombre == "":
             nombre = "Jugador"
         guardar_puntaje(nombre, jug_score)
+        reproducir_cancion()
         win.destroy()
 
     tk.Button(win, text="Guardar", font=("Perfect DOS VGA 437 Win", 12), command=guardar).pack(pady=10)
@@ -591,11 +662,18 @@ def iniciar_juego(ventana_principal):
     inicializar_nivel()
     inicializar_camara(nivel_width)
     inicializar_jugador()
+
     inicializar_enemigos()
     inicializar_enemigos2()
 
+
     activo = [True]
     last_t = [time.perf_counter()]
+
+    def al_cerrar():
+        reproducir_cancion()
+        ventana_principal.deiconify()
+        ventana.destroy()    
 
     # ── Teclado ───────────────────────────────────────────────────────────────
     def key_down(event):
@@ -608,6 +686,7 @@ def iniciar_juego(ventana_principal):
         if k == "space": tecla_space = True
         if k == "escape":
             activo[0] = False
+            al_cerrar()
             ventana.destroy()
             
 
@@ -630,12 +709,17 @@ def iniciar_juego(ventana_principal):
     def game_over():
         activo[0] = False
         messagebox.showinfo("Game Over", f"¡Se acabaron las vidas!\nPuntuación: {jug_score}", parent=ventana)
+        reproducir_cancion()
         ventana.destroy()
 
     def ganar():
         activo[0] = False
         ventana.withdraw()
         ventana_ganar(ventana)
+
+
+
+    ventana.protocol("WM_DELETE_WINDOW", al_cerrar)
         
     # ── Bucle ─────────────────────────────────────────────────────────────────
     def loop():
@@ -659,9 +743,9 @@ def iniciar_juego(ventana_principal):
 
             actualizar_jugador(todas)
             actualizar_enemigos(todas)
-            actualizar_enemigos2
+            actualizar_enemigos2(todas)
             verificar_colision_enemigos()
-            verificar_colision_enemigos2
+            verificar_colision_enemigos2()
 
             if verificar_meta():
                 ganar()
@@ -955,9 +1039,10 @@ def abrir_editor(ventana_principal):
         nivel_spawn_x   = ed_spawn_x
         nivel_spawn_y   = ed_spawn_y + SPAWN_H_ED
         nivel_meta      = (ed_meta_x, ed_meta_y, META_W_ED, META_H_ED)
- 
-        # Reconstruir datos de enemigos con rango de patrulla automatico
         datos_enemigos = []
+        datos_enemigos2 = []
+
+
         for i in range(len(ed_enemigos_x)):
             x   = ed_enemigos_x[i]
             y   = ed_enemigos_y[i] + EN_H_ED
@@ -965,7 +1050,6 @@ def abrir_editor(ventana_principal):
             der = x + 150
             datos_enemigos.append((x, y, izq, der))
 
-        datos_enemigos2 = []
         for i in range(len(ed_enemigos2_x)):
             x   = ed_enemigos2_x[i]
             y   = ed_enemigos2_y[i] + EN2_H_ED
@@ -995,7 +1079,6 @@ def salir():
     principal.destroy()
 
 def crear_menu():
-
     ventana = tk.Toplevel(principal)
     ventana.title("Piston Power Adventure")
     ventana.geometry(f"{ANCHO}x{ALTO}")
@@ -1011,11 +1094,11 @@ def crear_menu():
     canvas_menu.create_image(0, 0, anchor="nw", image=ventana.fondo)
 
     btn_jugar = tk.Label(ventana, text="Jugar Nivel Fijo", font=("Perfect DOS VGA 437 Win", 16), width=15, height=3, bg="#d6bc84", fg="black", cursor="hand2")
-    btn_jugar.bind("<Button-1>", lambda e: iniciar_juego(ventana))
+    btn_jugar.bind("<Button-1>", lambda e:[cargar_nivel_fijo(), iniciar_juego(ventana)])
     canvas_menu.create_window(351, 256, window=btn_jugar)
 
     btn_editor = tk.Label(ventana, text="Creador \n de Niveles", font=("Perfect DOS VGA 437 Win", 16), width=13, height=2, bg="#d6bc84", fg="black", cursor="hand2")
-    btn_editor.bind("<Button-1>", lambda e: abrir_editor(principal))
+    btn_editor.bind("<Button-1>", lambda e: abrir_editor(ventana))
     canvas_menu.create_window(769, 253, window=btn_editor)
 
     btn_records = tk.Label(ventana, text="Records", font=("Perfect DOS VGA 437 Win", 16), width=13, height=4, bg="#d6bc84", fg="black", cursor="hand2")
@@ -1038,5 +1121,6 @@ def crear_menu():
 # ══════════════════════════════════════════════════════════════════════════════
 principal = tk.Tk()
 principal.withdraw()
+pygame.mixer.init()
 crear_menu()
 principal.mainloop()
