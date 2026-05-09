@@ -1,4 +1,0 @@
-david,500
-a,100
-b,0
-Jugador,0

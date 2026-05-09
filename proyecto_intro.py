@@ -622,7 +622,7 @@ def ventana_records(ventana_padre):
     win.title("Records")
     win.geometry("400x350")
     win.configure(bg="#111122")
-    tk.Label(win, text="Mejores Puntajes", font=("Perfect DOS VGA 437 Win", 14), bg= "#111122", fg="#FFD700").pack(pady=15)
+    tk.Label(win, text="Mejores Puntajes", font=("Perfect DOS VGA 437 Win", 14), bg= "#111122", fg="white").pack(pady=15)
 
     puntajes = []
     if os.path.exists(ruta):
@@ -642,7 +642,7 @@ def ventana_records(ventana_padre):
         for i in range(len(puntajes)):
             nombre, pts = puntajes[i]
             tk.Label(win, text=f"{posicion[i]}  {nombre}  —  {pts} pts", font=("Perfect DOS VGA 437 Win", 12), bg="#111122", fg=colores[i]).pack(pady=4)
-    tk.Button (win, text="Cerrar", font=("Perfect DOS VGA 437 Win", 11), bg="#220000", fg="white",command=win.destroy).pack(pady=15)
+    tk.Button (win, text="Cerrar", font=("Perfect DOS VGA 437 Win", 11), bg="#220000", fg="black",command=win.destroy).pack(pady=15)
          
 
 # ══════════════════════════════════════════════════════════════════════════════
