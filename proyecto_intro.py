@@ -5,9 +5,9 @@ import pygame
 import os
 import time
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  CONFIGURACIÓN GLOBAL
-# ══════════════════════════════════════════════════════════════════════════════
+
+#==============CONFIGURACIÓN GLOBAL=================#
+
 ANCHO        = 1111
 ALTO         = 600
 SCREEN_W     = ANCHO
@@ -28,9 +28,9 @@ jug_img_walk2 = None
 jug_anim_tick  = 0
 jug_anim_frame = 0
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  AUDIO
-# ══════════════════════════════════════════════════════════════════════════════
+
+#========================AUDIO===================#
+
 musica_activa = True
 
 def reproducir_cancion():
@@ -38,9 +38,9 @@ def reproducir_cancion():
     audio = os.path.join(carpeta, "musica.mp3")  
     pygame.mixer.music.stop()
     pygame.mixer.music.load(audio)
-    pygame.mixer.music.play(-1)
+    pygame.mixer.music.play(-1) #es para que se reproduzca infinitamente
 
-def toggle_musica():
+def toggle_musica(): # esto es para que alterne entre pausar y reanudar la musica
     global musica_activa
     musica_activa = not musica_activa
     if musica_activa:
@@ -48,11 +48,10 @@ def toggle_musica():
     else:
         pygame.mixer.music.pause()
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  UTILIDAD — cargar imagen
-# ══════════════════════════════════════════════════════════════════════════════
-def cargar_imagen(path, w=None, h=None):
-    """Carga imagen con PIL y la convierte a PhotoImage. Retorna None si falla."""
+
+#===============UTILIDAD — cargar imagen============#
+
+def cargar_imagen(path, w=None, h=None): #sirve para cargar la imagen 
     if not os.path.exists(path):
         return None
     img = Image.open(path).convert("RGBA")
@@ -60,9 +59,9 @@ def cargar_imagen(path, w=None, h=None):
         img = img.resize((w, h), Image.LANCZOS)
     return ImageTk.PhotoImage(img)
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  CÁMARA — variables globales 
-# ══════════════════════════════════════════════════════════════════════════════
+
+#=============CÁMARA — variables globales=============# 
+
 cam_x           = 0
 cam_level_width = 0
 
@@ -76,13 +75,12 @@ def actualizar_camara(player_x):
     target = player_x - CAMERA_DEAD
     cam_x  = max(0, min(target, cam_level_width - SCREEN_W))
 
-def camara_wx(world_x):
-    #Convierte coordenada de mundo a coordenada de pantalla.
+def camara_wx(world_x): #Convierte coordenada de mundo a coordenada de pantalla.
     return world_x - cam_x
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  NIVEL — variables globales de medidas
-# ══════════════════════════════════════════════════════════════════════════════
+
+#===========NIVEL — variables globales de medidas===========#
+
 nivel_width    = 1870
 nivel_bg       = None
 nivel_img_plat = None
@@ -134,14 +132,14 @@ datos_enemigos  = []
 datos_enemigos2 = []
 nivel_floor = [(0, 540, 8000, 60)]
 
-def inicializar_nivel():
+def inicializar_nivel(): #carga el fondo, se llama al principio de cada partida
     global nivel_bg, nivel_img_plat
     nivel_bg       = cargar_imagen(os.path.join(carpeta, "fondo_ingame.png"))
     nivel_img_plat = cargar_imagen(os.path.join(carpeta, "plataforma.png"), 220, 130)
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  JUGADOR — variables globales simples
-# ══════════════════════════════════════════════════════════════════════════════
+
+#==============JUGADOR — variables globales simples=============#
+
 jug_x         = 0.0
 jug_y         = 0.0
 jug_vx        = 0.0
@@ -155,7 +153,7 @@ jug_alive     = True
 jug_img       = None
 musica_ganar = None
 
-def cargar_nivel_fijo():
+def cargar_nivel_fijo(): 
     global nivel_platforms, nivel_ladders, nivel_spawn_x
     global nivel_spawn_y, nivel_meta, datos_enemigos, datos_enemigos2
     nivel_platforms = fijo_platforms[:]
@@ -166,7 +164,7 @@ def cargar_nivel_fijo():
     datos_enemigos  = fijo_enemigos[:]
     datos_enemigos2 = fijo_enemigos2[:]
 
-def inicializar_jugador():
+def inicializar_jugador(): # resetea todas las variables del jugador
     global jug_x, jug_y, jug_vx, jug_vy, jug_on_ground, jug_on_ladder
     global jug_facing, jug_lives, jug_score, jug_alive, jug_img, jug_img_walk1, jug_img_walk2, jug_img_walk1_izq, jug_img_walk2_izq
     jug_x         = float(nivel_spawn_x)
@@ -203,7 +201,7 @@ def herir_jugador():
     jug_alive  = jug_lives > 0
     jugador_invencible = 60
 
-def manejar_input(): #defino l que sucede con
+def manejar_input(): #cada frame resetea la velocidad horizontal y la calcula segun la tecla
     global jug_vx, jug_vy, jug_facing, jug_on_ground
     jug_vx = 0
     if tecla_a or tecla_left:
@@ -224,7 +222,7 @@ def manejar_input(): #defino l que sucede con
         if tecla_s or tecla_down:
             jug_vy =  PLAYER_SPEED
 
-def overlap_jug(rx, ry, rw, rh): # hitbox
+def overlap_jug(rx, ry, rw, rh): # hitbox, aqui se define el margen
     
     margen_x = 10
     margen_y = 10
@@ -234,7 +232,7 @@ def overlap_jug(rx, ry, rw, rh): # hitbox
     py2 = jug_y + PLAYER_H - margen_y
     return px2 > rx and px1 < rx + rw and py2 > ry and py1 < ry + rh
 
-def resolver_x_jugador(todas):
+def resolver_x_jugador(todas): #se define las interacciones con las plataformas
     global jug_x, jug_vx
     for px, py, pw, ph in todas:
         if overlap_jug(px, py, pw, ph):
@@ -285,9 +283,9 @@ def actualizar_jugador(todas):
     if jug_y > SCREEN_H + 300:
         herir_jugador()
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  ENEMIGOS 
-# ══════════════════════════════════════════════════════════════════════════════
+
+#=======================ENEMIGOS=====================# 
+
 en_x      = []
 en_y      = []
 en_vx     = []
@@ -343,7 +341,7 @@ def inicializar_enemigos2():
     en2_left  = []
     en2_right = []
     en2_alive = []
-    for x, y, left, right in datos_enemigos2:   # <- datos_enemigos2
+    for x, y, left, right in datos_enemigos2:   
         en2_x.append(float(x))
         en2_y.append(float(y - EN2_H))
         en2_vx.append(1.0)
@@ -383,9 +381,9 @@ def actualizar_enemigos2(todas):
                 en2_y[i]  = py - EN2_H
                 en2_vy[i] = 0
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  TECLAS — variables globales simples
-# ══════════════════════════════════════════════════════════════════════════════
+
+#============TECLAS — variables globales simples=========#
+
 tecla_a     = False
 tecla_d     = False
 tecla_w     = False
@@ -396,10 +394,10 @@ tecla_down = False
 tecla_right = False
 tecla_left = False
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  COLISIONES
-# ══════════════════════════════════════════════════════════════════════════════
-def verificar_colision_enemigos():
+
+#============COLISIONES=========#
+
+def verificar_colision_enemigos(): #calcula la hitbox con el margen
     global jug_vy, jug_score
     margen_x = 10
     margen_y = 10
@@ -431,8 +429,8 @@ def verificar_colision_enemigos2():
     jy1 = jug_y + margen_y
     jx2 = jug_x + PLAYER_W - margen_x
     jy2 = jug_y + PLAYER_H - margen_y
-    for i in range(len(en2_x)):        # <- en2_x
-        if not en2_alive[i]:           # <- en2_alive
+    for i in range(len(en2_x)):        
+        if not en2_alive[i]:           
             continue
         ex1 = en2_x[i]
         ey1 = en2_y[i]
@@ -440,7 +438,7 @@ def verificar_colision_enemigos2():
         ey2 = en2_y[i] + EN2_H
         if jx2 > ex1 and jx1 < ex2 and jy2 > ey1 and jy1 < ey2:
             if jug_vy > 0 and jy2 - ey1 < 20:
-                en2_alive[i]  = False  # <- en2_alive
+                en2_alive[i]  = False  
                 jug_vy        = JUMP_FORCE * 0.6
                 jug_score    += 150
             else:
@@ -449,12 +447,11 @@ def verificar_colision_enemigos2():
 
 def verificar_meta():
     gx, gy, gw, gh = nivel_meta
-    return (jug_x + PLAYER_W > gx and jug_x < gx + gw and
-            jug_y + PLAYER_H > gy and jug_y < gy + gh)
+    return (jug_x + PLAYER_W > gx and jug_x < gx + gw and jug_y + PLAYER_H > gy and jug_y < gy + gh)
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  DIBUJO
-# ══════════════════════════════════════════════════════════════════════════════
+
+#==============DIBUJO==================#
+
 def dibujar_juego(canvas):
     global jug_anim_tick, jug_anim_frame
     canvas.delete("all")
@@ -645,9 +642,9 @@ def ventana_records(ventana_padre):
     tk.Button (win, text="Cerrar", font=("Perfect DOS VGA 437 Win", 11), bg="#220000", fg="black",command=win.destroy).pack(pady=15)
          
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  BUCLE PRINCIPAL
-# ══════════════════════════════════════════════════════════════════════════════
+
+#==============BUCLE PRINCIPAL============#
+
 def iniciar_juego(ventana_principal):
     global tecla_a, tecla_d, tecla_w, tecla_s, tecla_space, jugador_invencible
     pygame.mixer.music.stop()
@@ -730,7 +727,7 @@ def iniciar_juego(ventana_principal):
             jugador_invencible -= 1 
         todas = nivel_platforms + nivel_floor
 
-        now = time.perf_counter()
+        now = time.perf_counter() # limita para que el juego corra a solo 60 veces por segundo o 60 FPS
         if now - last_t[0] >= 1 / FPS:
             last_t[0] = now
 
@@ -788,8 +785,8 @@ ed_spawn_x     = 100         # posicion spawn
 ed_spawn_y     = 440
 ed_meta_x      = 5000        # posicion meta
 ed_meta_y      = 350
-ed_arrastrando = False       # si el mouse esta presionado
-ed_inicio_x    = 0           # donde empezo el arrastre
+ed_arrastrando = False       
+ed_inicio_x    = 0           
 ed_inicio_y    = 0
 
 # Tamaños de elementos
@@ -880,7 +877,7 @@ def abrir_editor(ventana_principal):
     tk.Button(barra, text="▶ JUGAR", font=("Perfect DOS VGA 437 Win", 11),bg="#004400", fg="black", width=8,
         command=lambda: aplicar_y_jugar(ventana, ventana_principal)).pack(side=tk.RIGHT, padx=10, pady=8)
 
-#==========Funciones para el editor====#
+#==========Funciones para el editor=======#
     def mover_camara_editor(dx):
         global ed_cam_x
         ed_cam_x = max(0, min(ed_cam_x + dx, EDITOR_W - SCREEN_W))
@@ -899,7 +896,7 @@ def abrir_editor(ventana_principal):
         ed_arrastrando = True
         ed_inicio_x    = mundo_x(event.x)
         ed_inicio_y    = event.y
-        soltar_editor(event)   # colocar al instante
+        soltar_editor(event)   
  
     def soltar_editor(event):
         global ed_arrastrando, ed_spawn_x, ed_spawn_y, ed_meta_x, ed_meta_y
@@ -1072,9 +1069,9 @@ def abrir_editor(ventana_principal):
     ventana.focus_set()
     dibujar_editor()
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  MENÚ PRINCIPAL
-# ══════════════════════════════════════════════════════════════════════════════
+
+#============MENÚ PRINCIPAL===========#
+
 def salir():
     principal.destroy()
 
@@ -1116,9 +1113,9 @@ def crear_menu():
 
     reproducir_cancion()
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  ENTRADA
-# ══════════════════════════════════════════════════════════════════════════════
+
+#============ENTRADA============#
+
 principal = tk.Tk()
 principal.withdraw()
 pygame.mixer.init()
